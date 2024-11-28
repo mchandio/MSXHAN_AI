@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        #chat-history {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .user-message {
+            color: blue;
+        }
+        .bot-message {
+            color: green;
+        }
+        .loading {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Chatbot</h1>
+    <div id="chat-history"></div>
+    <form id="chat-form" onsubmit="return false;">
+        <textarea id="chat-text" rows="4" cols="50" placeholder="Enter your message"></textarea><br>
+        <button type="button" onclick="chat()">Chat</button>
+        <div class="loading">Loading...</div>
+    </form>
+
+    <script>
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+
+        function chat() {
+            const text = document.getElementById("chat-text").value.trim();
+            if (text === "") return;
+
+            const chatHistory = document.getElementById("chat-history");
+            chatHistory.innerHTML += `<div class="user-message">You: ${sanitizeInput(text)}</div>`;
+            document.getElementById("chat-text").value = "";
+            document.querySelector(".loading").style.display = "block";
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'text=' + encodeURIComponent(text),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector(".loading").style.display = "none";
+                chatHistory.innerHTML += `<div class="bot-message">Chatbot: ${sanitizeInput(data.response)}</div>`;
+                chatHistory.scrollTop = chatHistory.scrollHeight;  // Auto-scroll to bottom
+            })
+            .catch(error => {
+                document.querySelector(".loading").style.display = "none";
+                chatHistory.innerHTML += `<div class="bot-message">Error: ${sanitizeInput(error.message)}</div>`;
+            });
+        }
+
+        // Allow pressing "Enter" to send the message
+        document.getElementById("chat-text").addEventListener("keypress", function (e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                chat();
+            }
+        });
+    </script>
+</body>
+</html>
